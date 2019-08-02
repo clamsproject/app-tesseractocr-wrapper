@@ -22,10 +22,11 @@ class OCR(ClamApp):
         # this mock-up method always returns true
         return True
 
-    def annotate(self, mmif_json):
-        mmif = Mmif(mmif_json)
+    def annotate(self, mmif):
+        if type(mmif) is not Mmif:
+            mmif = Mmif(mmif)
         video_filename = mmif.get_medium_location(MediaTypes.V)
-        ocr_output = self.run_ocr(video_filename, mmif_json) #ocr_output is a list of frame number, text pairs
+        ocr_output = self.run_ocr(video_filename, mmif) #ocr_output is a list of frame number, text pairs
 
         new_view = mmif.new_view()
         contain = new_view.new_contain(AnnotationTypes.OCR)
