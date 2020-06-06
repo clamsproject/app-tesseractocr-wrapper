@@ -44,8 +44,8 @@ class OCR(ClamApp):
             annotation.end = str(start_frame)  # since we're treating each frame individually for now, start and end are the same
             annotation.attype = AnnotationTypes.OCR
 
-            for (text, target) in text_target_list:
-                annotation.feature = {'text':text, 'target':target}
+            for (text, region) in text_target_list:
+                annotation.feature = {'text':text, 'region':region}
 
         for contain in new_view.contains.keys():
             mmif.contains.update({contain: new_view.id})
@@ -89,7 +89,8 @@ class OCR(ClamApp):
                         results.append((txt, ":".join([view_id, str(aid), str(i)])))
                 except Exception as e:
                     print ("error on {}".format(box))
-            ocr_result.append((framenum, results))
+            if len(results) > 0:
+                ocr_result.append((framenum, results))
         # ocr_result is a list of frame number, [(text, target)] pairs
         return ocr_result
 
