@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.8
 ENV OPENCV_VERSION=4.1.1
 # general
 RUN apt-get update && apt-get install -y build-essential cmake \
@@ -89,12 +89,10 @@ RUN apt-get -y clean all && \
     apt-get clean && \
     rm -rf /opencv /opencv_contrib /var/lib/apt/lists/*
 
-
-
 COPY ./ ./app
 WORKDIR ./app
 
 RUN pip3 install -r requirements.txt
 
 ENTRYPOINT ["python3"]
-CMD ["ocr.py"]
+CMD ["app.py"]
