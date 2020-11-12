@@ -168,7 +168,7 @@ def run_aligned_video(mmif:Mmif, text_bb_view: View) -> Mmif:
     for frame_num, annotation_list in od.items():
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
         ret, frame = cap.read()
-        new_view = add_ocr_and_align(frame, new_view, annotation_list, frame_num, align_id=text_bb_view.id)
+        new_view = add_ocr_and_align(frame, new_view, text_bb_view.id, annotation_list, frame_num)
     mmif.add_view(new_view, overwrite=True)
     return mmif
 
