@@ -15,9 +15,9 @@ class OCR(ClamsApp):
             "iri": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
             "requires": [DocumentTypes.ImageDocument.value, DocumentTypes.VideoDocument.value],
             "produces": [
-                AnnotationTypes.BoundingBox,
-                AnnotationTypes.Alignment,
-                DocumentTypes.TextDocument,
+                AnnotationTypes.BoundingBox.value,
+                AnnotationTypes.Alignment.value,
+                DocumentTypes.TextDocument.value,
             ],
         }
         return metadata
