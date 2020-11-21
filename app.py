@@ -3,6 +3,7 @@ from clams.restify import Restifier
 
 from tesseract_utils import *
 
+APP_VERSION = 0.1
 
 class OCR(ClamsApp):
     def setupmetadata(self):
@@ -11,7 +12,8 @@ class OCR(ClamsApp):
             "description": "This tool applies Tesseract OCR to an "
             "image and generates text boxes and OCR result.",
             "vendor": "Team CLAMS",
-            "requires": [DocumentTypes.ImageDocument, DocumentTypes.VideoDocument],
+            "iri": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
+            "requires": [DocumentTypes.ImageDocument.value, DocumentTypes.VideoDocument.value],
             "produces": [
                 AnnotationTypes.BoundingBox,
                 AnnotationTypes.Alignment,
