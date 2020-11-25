@@ -89,10 +89,11 @@ RUN apt-get -y clean all && \
     apt-get clean && \
     rm -rf /opencv /opencv_contrib /var/lib/apt/lists/*
 
-COPY ./ ./app
-WORKDIR ./app
+COPY requirements.txt /app/requirements.txt
+WORKDIR /app
+RUN pip install -r requirements.txt
 
-RUN pip3 install -r requirements.txt
+COPY ./ ./app
 
 ENTRYPOINT ["python3"]
 CMD ["app.py"]
