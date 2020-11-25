@@ -102,7 +102,7 @@ def build_target_timeframes(mmif: Mmif, target_type: str) -> Dict[Tuple[str, str
 
 def build_frame_box_dict(view: View):
     annotation_dict = collections.defaultdict(list)
-    for annotation in get_annotations_by_type(view, AnnotationTypes.Alignment.value):
+    for annotation in view.get_annotations(AnnotationTypes.Alignment):
         source = get_annotation_by_id(view, annotation.properties["source"])
         target = get_annotation_by_id(view, annotation.properties["target"])
         if source.at_type == AnnotationTypes.TimePoint.value and target.at_type == AnnotationTypes.BoundingBox.value and target.properties["boxType"] == "text":
@@ -110,15 +110,6 @@ def build_frame_box_dict(view: View):
                 raise NotImplementedError ##todo 2020-10-29 kelleylynch handle units other than frame
             annotation_dict[source.properties["point"]].append(target)
     return annotation_dict
-
-
-def get_annotations_by_type(view:View, annotation_type:str) -> List[Annotation]:
-    ##todo 2020-10-29 kelleylynch should this be in the mmif sdk?
-    annotations = []
-    for anno in view.annotations:
-        if anno.at_type == annotation_type:
-            annotations.append(anno)
-    return annotations
 
 
 def get_annotation_by_id(view: View, id: str) -> Annotation:
