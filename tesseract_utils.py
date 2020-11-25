@@ -12,6 +12,7 @@ SAMPLE_RATIO = 30
 BOX_THRESHOLD = 90
 TARGET_FRAME_TYPE = None
 
+
 def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshold: int = BOX_THRESHOLD) -> View:
     tess_result = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
     cleaned_results = []
@@ -45,7 +46,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         )
         bb_annotation.add_property("boxType", "text")
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        td_annotation.add_property("@value", box.text)
+        td_annotation.add_property("text", str({"@value": box.text}))
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"bb{_id}")
         align_annotation.add_property("target", f"td{_id}")
@@ -74,7 +75,7 @@ def add_ocr_and_align(image: np.array, new_view: View, align_id:str, bb_annotati
                    max(0, x0):min(x1+10, image.shape[1])]
         text_content = pytesseract.image_to_string(subimage) ##todo 2020-10-29 kelleylynch add config here
         tdoc_annotation = new_view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        tdoc_annotation.add_property("@value", text_content)
+        tdoc_annotation.add_property("text", str({"@value": text_content}))
         align_annotation = new_view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"{align_id}:{bb_annotation.id}")
         align_annotation.add_property("target", tdoc_annotation.id)
