@@ -46,7 +46,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         )
         bb_annotation.add_property("boxType", "text")
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        td_annotation.add_property("text", str({"@value": box.text}))
+        td_annotation.add_property("text", {"@value": box.text})
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"bb{_id}")
         align_annotation.add_property("target", f"td{_id}")
@@ -164,9 +164,9 @@ def run_aligned_video(mmif:Mmif, text_bb_view: View) -> Mmif:
     return mmif
 
 
-def run_aligned_image(mmif: Mmif,  text_bb_view: View) -> Mmif:
+def run_aligned_image(mmif: Mmif, text_bb_view: View) -> Mmif:
     new_view = mmif.new_view()
     image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument.value))
-    new_view = add_ocr_and_align(image, new_view, text_bb_view)
+    new_view = add_ocr_and_align(image, new_view, text_bb_view.id, text_bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"))
     mmif.add_view(new_view, overwrite=True)
     return mmif
