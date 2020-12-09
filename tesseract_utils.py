@@ -10,7 +10,7 @@ from mmif import Mmif, View, Annotation
 BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 SAMPLE_RATIO = 30
 BOX_THRESHOLD = 90
-TARGET_FRAME_TYPE = None
+TARGET_FRAME_TYPE = "slate"
 
 
 def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshold: int = BOX_THRESHOLD) -> View:
