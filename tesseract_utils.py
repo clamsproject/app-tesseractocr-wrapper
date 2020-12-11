@@ -10,7 +10,7 @@ from mmif import Mmif, View, Annotation
 BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 SAMPLE_RATIO = 30
 BOX_THRESHOLD = 90
-TARGET_FRAME_TYPE = "slate"
+TARGET_FRAME_TYPE = None
 
 
 def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshold: int = BOX_THRESHOLD) -> View:
@@ -46,7 +46,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         )
         bb_annotation.add_property("boxType", "text")
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        td_annotation.add_property("@value", box.text)
+        td_annotation.add_property("text", {"@value": box.text})
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"bb{_id}")
         align_annotation.add_property("target", f"td{_id}")
@@ -75,7 +75,7 @@ def add_ocr_and_align(image: np.array, new_view: View, align_id:str, bb_annotati
                    max(0, x0):min(x1+10, image.shape[1])]
         text_content = pytesseract.image_to_string(subimage) ##todo 2020-10-29 kelleylynch add config here
         tdoc_annotation = new_view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        tdoc_annotation.add_property("@value", text_content)
+        tdoc_annotation.add_property("text", str({"@value": text_content}))
         align_annotation = new_view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"{align_id}:{bb_annotation.id}")
         align_annotation.add_property("target", tdoc_annotation.id)
@@ -103,7 +103,7 @@ def build_target_timeframes(mmif: Mmif, target_type: str) -> Dict[Tuple[str, str
 
 def build_frame_box_dict(view: View):
     annotation_dict = collections.defaultdict(list)
-    for annotation in get_annotations_by_type(view, AnnotationTypes.Alignment.value):
+    for annotation in view.get_annotations(AnnotationTypes.Alignment):
         source = get_annotation_by_id(view, annotation.properties["source"])
         target = get_annotation_by_id(view, annotation.properties["target"])
         if source.at_type == AnnotationTypes.TimePoint.value and target.at_type == AnnotationTypes.BoundingBox.value and target.properties["boxType"] == "text":
@@ -111,15 +111,6 @@ def build_frame_box_dict(view: View):
                 raise NotImplementedError ##todo 2020-10-29 kelleylynch handle units other than frame
             annotation_dict[source.properties["point"]].append(target)
     return annotation_dict
-
-
-def get_annotations_by_type(view:View, annotation_type:str) -> List[Annotation]:
-    ##todo 2020-10-29 kelleylynch should this be in the mmif sdk?
-    annotations = []
-    for anno in view.annotations:
-        if anno.at_type == annotation_type:
-            annotations.append(anno)
-    return annotations
 
 
 def get_annotation_by_id(view: View, id: str) -> Annotation:
@@ -173,9 +164,9 @@ def run_aligned_video(mmif:Mmif, text_bb_view: View) -> Mmif:
     return mmif
 
 
-def run_aligned_image(mmif: Mmif,  text_bb_view: View) -> Mmif:
+def run_aligned_image(mmif: Mmif, text_bb_view: View) -> Mmif:
     new_view = mmif.new_view()
     image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument.value))
-    new_view = add_ocr_and_align(image, new_view, text_bb_view)
+    new_view = add_ocr_and_align(image, new_view, text_bb_view.id, text_bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"))
     mmif.add_view(new_view, overwrite=True)
     return mmif
