@@ -5,6 +5,7 @@ from tesseract_utils import *
 
 APP_VERSION = 0.1
 
+
 class OCR(ClamsApp):
     def setupmetadata(self):
         metadata = {
@@ -22,7 +23,7 @@ class OCR(ClamsApp):
         }
         return metadata
 
-    def sniff(self, mmif):
+    def sniff(self, mmif): # todo 2020-12-13 kelleylynch implement sniff
         # this mock-up method always returns true
         return True
 
