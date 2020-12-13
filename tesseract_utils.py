@@ -10,7 +10,7 @@ from mmif import Mmif, View, Annotation
 BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 SAMPLE_RATIO = 30
 BOX_THRESHOLD = 90
-TARGET_FRAME_TYPE = None
+TARGET_FRAME_TYPE = "slate"
 
 
 def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshold: int = BOX_THRESHOLD) -> View:
@@ -48,7 +48,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         if frame_num:
             bb_annotation.add_property("frame", frame_num)
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        td_annotation.add_property("text", {"@value": box.text})
+        td_annotation.add_property("text", {"@value": box.text, "@language":"en"})
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"bb{_id}")
         align_annotation.add_property("target", f"td{_id}")
