@@ -24,7 +24,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         tess_result["height"],
         tess_result["text"],
     ):
-        if type(box[0]) is int and box[0] > threshold:
+        if type(box[0]) is int and box[0] > threshold and len(box[5].strip()) > 0:
             cleaned_results.append(
                 BB(
                     conf=box[0],
@@ -45,6 +45,8 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
             f"{[[box.left, box.top], [box.left, box.top - box.height], [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]]}",
         )
         bb_annotation.add_property("boxType", "text")
+        if frame_num:
+            bb_annotation.add_property("frame", frame_num)
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
         td_annotation.add_property("text", {"@value": box.text})
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
