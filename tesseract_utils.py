@@ -10,7 +10,7 @@ from mmif import Mmif, View, Annotation
 BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 SAMPLE_RATIO = 30
 BOX_THRESHOLD = 90
-TARGET_FRAME_TYPE = "slate"
+TARGET_FRAME_TYPE = None
 
 
 def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshold: int = BOX_THRESHOLD) -> View:
@@ -24,7 +24,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         tess_result["height"],
         tess_result["text"],
     ):
-        if type(box[0]) is int and box[0] > threshold:
+        if type(box[0]) is int and box[0] > threshold and len(box[5].strip()) > 0:
             cleaned_results.append(
                 BB(
                     conf=box[0],
@@ -45,6 +45,8 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
             f"{[[box.left, box.top], [box.left, box.top - box.height], [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]]}",
         )
         bb_annotation.add_property("boxType", "text")
+        if frame_num:
+            bb_annotation.add_property("frame", frame_num)
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
         td_annotation.add_property("text", {"@value": box.text})
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
@@ -117,9 +119,11 @@ def get_annotation_by_id(view: View, id: str) -> Annotation:
     return [anno for anno in view.annotations if anno.id == id][0]
 
 
-def run_video_tesseract(mmif: Mmif) -> Mmif:
+def run_video_tesseract(mmif: Mmif, view:View) -> Mmif:
     cap = cv2.VideoCapture(mmif.get_document_location(DocumentTypes.VideoDocument))
-    view = mmif.new_view()
+    for ann_type in [AnnotationTypes.BoundingBox, DocumentTypes.TextDocument, AnnotationTypes.Alignment]:
+        contain = view.new_contain(ann_type)
+        contain.producer = "app-tesseractocr-wrapper" #todo de-hardcode this
     counter = 0
     if TARGET_FRAME_TYPE:
         target_timeframes = build_target_timeframes(mmif, TARGET_FRAME_TYPE)
@@ -136,22 +140,18 @@ def run_video_tesseract(mmif: Mmif) -> Mmif:
             if not ret:
                 break
             if counter % SAMPLE_RATIO == 0:
-                view = generate_text_and_boxes(image=f, view=view, frame_num=counter)
+                generate_text_and_boxes(image=f, view=view, frame_num=counter)
             counter += 1
-    mmif.add_view(view, overwrite=True)
     return mmif
 
 
-def run_image_tesseract(mmif: Mmif) -> Mmif:
+def run_image_tesseract(mmif: Mmif, view:View) -> Mmif:
     image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument))
-    view = mmif.new_view()
-    view = generate_text_and_boxes(image, view)
-    mmif.add_view(view, overwrite=True)
+    generate_text_and_boxes(image, view)
     return mmif
 
 
-def run_aligned_video(mmif:Mmif, text_bb_view: View) -> Mmif:
-    new_view =  mmif.new_view()
+def run_aligned_video(mmif:Mmif, new_view:View, text_bb_view: View) -> Mmif:
     cap = cv2.VideoCapture(mmif.get_document_location(DocumentTypes.VideoDocument.value))
     annotation_dict = build_frame_box_dict(text_bb_view)
     #sort the dict on the frame number keys
@@ -160,13 +160,10 @@ def run_aligned_video(mmif:Mmif, text_bb_view: View) -> Mmif:
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
         ret, frame = cap.read()
         new_view = add_ocr_and_align(frame, new_view, text_bb_view.id, annotation_list, frame_num)
-    mmif.add_view(new_view, overwrite=True)
     return mmif
 
 
-def run_aligned_image(mmif: Mmif, text_bb_view: View) -> Mmif:
-    new_view = mmif.new_view()
+def run_aligned_image(mmif: Mmif, new_view:View, text_bb_view: View) -> Mmif:
     image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument.value))
     new_view = add_ocr_and_align(image, new_view, text_bb_view.id, text_bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"))
-    mmif.add_view(new_view, overwrite=True)
     return mmif
