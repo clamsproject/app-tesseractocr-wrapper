@@ -41,8 +41,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         bb_annotation = view.new_annotation(f"bb{_id}", AnnotationTypes.BoundingBox)
         bb_annotation.add_property(
             "coordinates",
-            ##todo 2020-10-23 kelleylynch property value is restricted to string, should this be a list of list of ints?
-            f"{[[box.left, box.top], [box.left, box.top - box.height], [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]]}",
+            [[box.left, box.top], [box.left, box.top - box.height], [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]],
         )
         bb_annotation.add_property("boxType", "text")
         if frame_num:
@@ -62,7 +61,7 @@ def add_ocr_and_align(image: np.array, new_view: View, align_id:str, bb_annotati
     containing text.
     :param image:
     :param new_view: view to add annotations to
-    :param align_id: id of view containing bounding box annotations
+    :param align_id: id of view containing bounding box annotations, becomes prefix
     :param bb_annotations: list of annotations containing coordinates of text candidates
     :param frame_num, frame number of the target image
     :return: View containing aligned text document annotations
