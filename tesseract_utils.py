@@ -41,8 +41,7 @@ def generate_text_and_boxes(image: np.array, view:View, frame_num=None, threshol
         bb_annotation = view.new_annotation(f"bb{_id}", AnnotationTypes.BoundingBox)
         bb_annotation.add_property(
             "coordinates",
-            ##todo 2020-10-23 kelleylynch property value is restricted to string, should this be a list of list of ints?
-            f"{[[box.left, box.top], [box.left, box.top - box.height], [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]]}",
+            [[box.left, box.top], [box.left, box.top - box.height], [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]],
         )
         bb_annotation.add_property("boxType", "text")
         if frame_num:
