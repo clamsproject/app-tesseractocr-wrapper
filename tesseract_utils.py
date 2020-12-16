@@ -74,9 +74,9 @@ def add_ocr_and_align(image: np.array, new_view: View, align_id:str, bb_annotati
         x1, y1 = coordinates[3]
         subimage = image[max(0, y0-10):min(y1, image.shape[0]),
                    max(0, x0):min(x1+10, image.shape[1])]
-        text_content = pytesseract.image_to_string(subimage) ##todo 2020-10-29 kelleylynch add config here
+        text_content = pytesseract.image_to_string(subimage, lang="eng", config='--psm 13') ##todo 2020-12-15 kelleylynch reconsider config here
         tdoc_annotation = new_view.new_annotation(f"td{_id}", DocumentTypes.TextDocument)
-        tdoc_annotation.add_property("text", str({"@value": text_content}))
+        tdoc_annotation.add_property("text", str({"@value": text_content.strip()}))
         align_annotation = new_view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
         align_annotation.add_property("source", f"{align_id}:{bb_annotation.id}")
         align_annotation.add_property("target", tdoc_annotation.id)
