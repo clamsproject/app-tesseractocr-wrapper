@@ -69,7 +69,7 @@ def add_ocr_and_align(image: np.array, new_view: View, align_id:str, bb_annotati
     for _id, bb_annotation in enumerate(bb_annotations):
         if frame_num:
             _id = f"{frame_num}_{_id}"
-        coordinates = json.loads(bb_annotation.properties["coordinates"])
+        coordinates = bb_annotation.properties["coordinates"]
         x0, y0 = coordinates[0]
         x1, y1 = coordinates[3]
         subimage = image[max(0, y0-10):min(y1, image.shape[0]),
@@ -84,10 +84,15 @@ def add_ocr_and_align(image: np.array, new_view: View, align_id:str, bb_annotati
 
 
 def get_text_bb_view(mmif: Mmif) -> Optional[View]:
+    '''
+    Return the first view containing boundingbox annotations with boxType == text
+    :param mmif:
+    :return:
+    '''
     for bb_view in mmif.get_all_views_contain(AnnotationTypes.BoundingBox):
-        for bb_annotation in filter(lambda x: x.at_type == AnnotationTypes.BoundingBox.value, bb_view.annotations):
-            if bb_annotation.properties["boxType"] == "text":
-                return bb_view
+        annotations = bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text")
+        if annotations:
+            return bb_view
     return None
 
 
@@ -104,13 +109,10 @@ def build_target_timeframes(mmif: Mmif, target_type: str) -> Dict[Tuple[str, str
 
 def build_frame_box_dict(view: View):
     annotation_dict = collections.defaultdict(list)
-    for annotation in view.get_annotations(AnnotationTypes.Alignment):
-        source = get_annotation_by_id(view, annotation.properties["source"])
-        target = get_annotation_by_id(view, annotation.properties["target"])
-        if source.at_type == AnnotationTypes.TimePoint.value and target.at_type == AnnotationTypes.BoundingBox.value and target.properties["boxType"] == "text":
-            if source.properties["unit"] != "frame":
-                raise NotImplementedError ##todo 2020-10-29 kelleylynch handle units other than frame
-            annotation_dict[source.properties["point"]].append(target)
+    for annotation in view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"):
+        # if annotation.properties["unit"] != "frame":
+        #     raise NotImplementedError ##todo 2020-10-29 kelleylynch handle units other than frame
+        annotation_dict[annotation.properties["frame"]].append(annotation)
     return annotation_dict
 
 
@@ -153,16 +155,14 @@ def run_image_tesseract(mmif: Mmif, view:View) -> Mmif:
 def run_aligned_video(mmif:Mmif, new_view:View, text_bb_view: View) -> Mmif:
     cap = cv2.VideoCapture(mmif.get_document_location(DocumentTypes.VideoDocument.value))
     annotation_dict = build_frame_box_dict(text_bb_view)
-    #sort the dict on the frame number keys
-    od = collections.OrderedDict(sorted(annotation_dict.items()))
-    for frame_num, annotation_list in od.items():
+    for frame_num, annotation_list in annotation_dict.items():
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
         ret, frame = cap.read()
-        new_view = add_ocr_and_align(frame, new_view, text_bb_view.id, annotation_list, frame_num)
+        add_ocr_and_align(frame, new_view, text_bb_view.id, annotation_list, frame_num)
     return mmif
 
 
 def run_aligned_image(mmif: Mmif, new_view:View, text_bb_view: View) -> Mmif:
     image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument.value))
-    new_view = add_ocr_and_align(image, new_view, text_bb_view.id, text_bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"))
+    add_ocr_and_align(image, new_view, text_bb_view.id, text_bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"))
     return mmif

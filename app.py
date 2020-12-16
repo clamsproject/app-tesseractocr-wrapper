@@ -35,36 +35,20 @@ class OCR(ClamsApp):
         new_view = mmif.new_view()
         new_view.metadata['app'] = self.metadata["iri"]
 
+        text_bb_view = get_text_bb_view(mmif)
         if mmif.get_documents_by_type(DocumentTypes.VideoDocument.value):
-            mmif = self.annotate_video_mmif(mmif, new_view)
+            if text_bb_view:
+                mmif = run_aligned_video(mmif, new_view, text_bb_view)
+            else:
+                mmif = run_video_tesseract(mmif, new_view)
         elif mmif.get_documents_by_type(DocumentTypes.ImageDocument.value):
-            mmif = self.annotate_image_mmif(mmif, new_view)
+            if text_bb_view:
+                mmif = run_aligned_image(mmif, new_view, text_bb_view)
+            else:
+                mmif = run_image_tesseract(mmif, new_view)
         else:
             raise Exception("Mmif missing valid document type.")
         return str(mmif)
-
-    @staticmethod
-    def annotate_image_mmif(mmif: Mmif, view: View) -> Mmif:
-        """
-        This method applies tesseract to regions of an image, if text box annotations exist, those boxes are
-        used, otherwise bounding boxes are generated using tesseract localization.
-        :return: annotated Mmif
-        """
-        text_bb = get_text_bb_view(mmif)
-        if text_bb:
-            mmif = run_aligned_image(mmif, view, text_bb)
-        else:
-            mmif = run_image_tesseract(mmif, view)
-        return mmif
-
-    @staticmethod
-    def annotate_video_mmif(mmif: Mmif, view:View) -> Mmif:
-        text_bb = get_text_bb_view(mmif)
-        if text_bb:
-            mmif = run_aligned_video(mmif, view, text_bb)
-        else:
-            mmif = run_video_tesseract(mmif, view)
-        return mmif
 
 
 if __name__ == "__main__":
