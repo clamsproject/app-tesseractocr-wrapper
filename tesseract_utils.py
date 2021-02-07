@@ -1,7 +1,6 @@
 from typing import Optional, List, Tuple, Dict
 import cv2
 import pytesseract
-import json
 import collections
 import numpy as np
 from mmif.vocabulary import DocumentTypes, AnnotationTypes
