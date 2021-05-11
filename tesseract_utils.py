@@ -93,7 +93,7 @@ def generate_text_and_boxes(image: np.array, view: View, frame_num=None) -> View
         if frame_num:
             bb_annotation.add_property("frame", frame_num)
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument.value)
-        td_annotation.add_property("text", {"@value": box.text, "@language": "en"})
+        td_annotation.add_property("text", str({"@value": box.text, "@language": "en"})) ##todo 4/29/21 kelleylynch a hack to prevent an error, check on this
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment.value)
         align_annotation.add_property("source", f"bb{_id}")
         align_annotation.add_property("target", f"td{_id}")
@@ -221,12 +221,14 @@ def run_aligned_video(
     for view in bb_views:
         annotation_dict = build_frame_box_dict(view, box_type)
         for frame_num, annotation_list in annotation_dict.items():
-            if valid_frame_list:
-                if frame_num not in valid_frame_list:
-                    continue
+            print (f"tesseracting frame number {frame_num}")
+            # if valid_frame_list:
+            #     if frame_num not in valid_frame_list:
+            #         continue
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
             ret, frame = cap.read()
             add_ocr_and_align(frame, new_view, view.id, annotation_list, frame_num)
+    print (new_view)
     return mmif
 
 
@@ -269,10 +271,11 @@ def box_ocr(mmif_obj, new_view, box_type, **kwargs):
                 for tf_view in views_with_timeframe
                 for tf_annotation in tf_view.get_annotations(AnnotationTypes.TimeFrame, frameType=FRAME_TYPE)
             ]
-        target_views = [bb_view for bb_view in views_with_bbox
-                        if int(bb_view.properties["frame"]) in
-                        itertools.chain([list(range(tf[0], tf[1]+1)) for tf in frame_number_ranges])
-                        ]
+        # target_views = [bb_view for bb_view in views_with_bbox
+        #                 if int(bb_view.properties["frame"]) in
+        #                 itertools.chain([list(range(tf[0], tf[1]+1)) for tf in frame_number_ranges])
+        #                 ]
+        target_views = views_with_bbox ##todo 4/29/21 kelleylynch incorporate filtering for frame type something like above comment
         mmif_obj = run_aligned_video(mmif_obj, new_view, target_views, box_type, valid_frame_list=frame_number_ranges)
     else:
         target_views=views_with_bbox
