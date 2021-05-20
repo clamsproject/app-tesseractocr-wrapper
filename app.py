@@ -14,6 +14,7 @@ class OCR(ClamsApp):
             "image and generates text boxes and OCR result.",
             "vendor": "Team CLAMS",
             "iri": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
+            "app": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
             "requires": [DocumentTypes.ImageDocument.value, DocumentTypes.VideoDocument.value],
             "produces": [
                 AnnotationTypes.BoundingBox.value,
