@@ -1,42 +1,10 @@
-FROM python:3.8
-ENV OPENCV_VERSION=4.1.1
+FROM clamsproject/clams-python-opencv4
 # general
 RUN apt-get update && apt-get install -y build-essential cmake \
     wget git unzip
 
-# Install all dependencies for OpenCV
-RUN apt-get -y update && \
-    apt-get -y install \
-        tesseract-ocr \
-        python3-dev \
-        git \
-        wget \
-        unzip \
-        cmake \
-        build-essential \
-        pkg-config \
-        libatlas-base-dev \
-        gfortran \
-        libgtk2.0-dev \
-        libavcodec-dev \
-        libavformat-dev \
-        libswscale-dev \
-        libjpeg-dev \
-        libpng-dev \
-        libtiff-dev \
-        libv4l-dev
-
-# numpy etc
-RUN pip install wheel && \
-    pip install numpy && \
-    pip install pandas && \
-    pip install scipy && \
-    pip install scikit-learn && \
-    pip install python-magic
-
 # lib for tesseract
-RUN apt-get update && \
-    apt-get -y install \
+RUN apt-get -y install \
         g++ \
         autoconf \
         automake \
@@ -48,7 +16,7 @@ RUN apt-get update && \
         libcairo2-dev
 
 # tesseract 4
-RUN apt-get update && apt-get install -y libleptonica-dev \
+RUN apt-get install -y libleptonica-dev \
     libtesseract4 \
     libtesseract-dev \
     tesseract-ocr
@@ -58,36 +26,25 @@ RUN apt-get install -y \
     tesseract-ocr-eng
     # add more if needed
 
-RUN apt-get -y clean all && \
-    rm -rf /var/lib/apt/lists/* && \
-
-    # Install OpenCV
-    wget https://github.com/opencv/opencv/archive/$OPENCV_VERSION.zip -O opencv3.zip && \
-    unzip -q opencv3.zip && \
-    mv /opencv-$OPENCV_VERSION /opencv && \
-    rm opencv3.zip && \
-    wget https://github.com/opencv/opencv_contrib/archive/$OPENCV_VERSION.zip -O opencv_contrib3.zip && \
-    unzip -q opencv_contrib3.zip && \
-    mv /opencv_contrib-$OPENCV_VERSION /opencv_contrib && \
-    rm opencv_contrib3.zip \
-    && \
-
-    # Clean
-    apt-get -y remove \
-        python3-dev \
-        libatlas-base-dev \
-        gfortran \
-        libgtk2.0-dev \
-        libavcodec-dev \
-        libavformat-dev \
-        libswscale-dev \
-        libjpeg-dev \
-        libpng-dev \
-        libtiff-dev \
-        libv4l-dev \
-        && \
-    apt-get clean && \
-    rm -rf /opencv /opencv_contrib /var/lib/apt/lists/*
+#RUN apt-get -y clean all && \
+#    rm -rf /var/lib/apt/lists/* && \
+#
+#    # Clean
+#    apt-get -y remove \
+#        python3-dev \
+#        libatlas-base-dev \
+#        gfortran \
+#        libgtk2.0-dev \
+#        libavcodec-dev \
+#        libavformat-dev \
+#        libswscale-dev \
+#        libjpeg-dev \
+#        libpng-dev \
+#        libtiff-dev \
+#        libv4l-dev
+#        && \
+#    apt-get clean && \
+#    rm -rf /opencv /opencv_contrib /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
