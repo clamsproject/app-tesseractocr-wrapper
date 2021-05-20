@@ -91,7 +91,8 @@ def generate_text_and_boxes(image: np.array, view: View, frame_num=None) -> View
         if frame_num:
             bb_annotation.add_property("frame", frame_num)
         td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument.value)
-        td_annotation.add_property("text", str({"@value": box.text, "@language": "en"})) ##todo 4/29/21 kelleylynch a hack to prevent an error, check on this
+        td_annotation.properties.text_language = "en"
+        td_annotation.properties.text_value = box.text
         align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment.value)
         align_annotation.add_property("source", f"bb{_id}")
         align_annotation.add_property("target", f"td{_id}")
