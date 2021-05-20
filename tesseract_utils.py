@@ -5,8 +5,6 @@ import collections
 import numpy as np
 from mmif.vocabulary import DocumentTypes, AnnotationTypes
 from mmif import Mmif, View, Annotation
-import itertools
-
 
 BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 
