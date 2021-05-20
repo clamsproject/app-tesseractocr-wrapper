@@ -32,6 +32,7 @@ class OCR(ClamsApp):
         """
         new_view = mmif_obj.new_view()
         new_view.metadata['app'] = self.metadata["iri"]
+        new_view.new_contain(DocumentTypes.TextDocument.value)
         new_view.metadata.set_additional_property("parameters", kwargs.copy())
         box_type = kwargs.pop('boxType') if 'boxType' in kwargs else None
         if box_type:
