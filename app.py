@@ -35,9 +35,9 @@ class OCR(ClamsApp):
         :return: annotated mmif as string
         """
         new_view = mmif_obj.new_view()
-        new_view.metadata['app'] = self.metadata["iri"]
-        new_view.new_contain(DocumentTypes.TextDocument.value)
-        new_view.metadata.set_additional_property("parameters", kwargs.copy())
+        config = self.get_configuration(**kwargs)
+        self.sign_view(v, config)
+        new_view.new_contain(DocumentTypes.TextDocument)
         box_type = kwargs.pop('boxType') if 'boxType' in kwargs else None
         if box_type:
             mmif_obj = box_ocr(mmif_obj, new_view, box_type, **kwargs)
