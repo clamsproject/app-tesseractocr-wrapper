@@ -12,11 +12,14 @@ class OCR(ClamsApp):
             "name": "Tesseract OCR",
             "description": "This tool applies Tesseract OCR to an "
             "image and generates text boxes and OCR result.",
-            "vendor": "Team CLAMS",
             "identifier": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
             "input": [
-            { "@type": DocumentTypes.ImageDocument.value},
-            {"@type":DocumentTypes.VideoDocument.value}],
+            { "@type": DocumentTypes.ImageDocument.value,
+            "required":False,
+            },
+            {"@type":DocumentTypes.VideoDocument.value,
+            "required":False} # todo are both of these really false?
+            ],
             "output": [
                 AnnotationTypes.BoundingBox.value,
                 AnnotationTypes.Alignment.value,
