@@ -13,10 +13,11 @@ class OCR(ClamsApp):
             "description": "This tool applies Tesseract OCR to an "
             "image and generates text boxes and OCR result.",
             "vendor": "Team CLAMS",
-            "iri": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
-            "app": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
-            "requires": [DocumentTypes.ImageDocument.value, DocumentTypes.VideoDocument.value],
-            "produces": [
+            "identifier": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
+            "input": [
+            { "@type": DocumentTypes.ImageDocument.value},
+            {"@type":DocumentTypes.VideoDocument.value}],
+            "output": [
                 AnnotationTypes.BoundingBox.value,
                 AnnotationTypes.Alignment.value,
                 DocumentTypes.TextDocument.value,
