@@ -1,5 +1,4 @@
-from clams.app import ClamsApp
-from clams.restify import Restifier
+from clams import ClamsApp, Restifier, AppMetadata
 
 from tesseract_utils import *
 
@@ -12,17 +11,29 @@ class OCR(ClamsApp):
             "name": "Tesseract OCR",
             "description": "This tool applies Tesseract OCR to an "
             "image and generates text boxes and OCR result.",
-            "vendor": "Team CLAMS",
-            "iri": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
-            "app": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
-            "requires": [DocumentTypes.ImageDocument.value, DocumentTypes.VideoDocument.value],
-            "produces": [
-                AnnotationTypes.BoundingBox.value,
-                AnnotationTypes.Alignment.value,
-                DocumentTypes.TextDocument.value,
+            "app_version": APP_VERSION,
+            "license":"", # todo look up wrappee license
+            "identifier": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
+            "input": [
+                {
+                    "@type": DocumentTypes.ImageDocument,
+                    "required": False,
+                },
+                {
+                    "@type": DocumentTypes.VideoDocument,
+                    "required": False,
+                },  # todo are both of these really false?
+            ],
+            "output": [
+                {
+                    "@type": AnnotationTypes.BoundingBox,
+                    "properties": {"frameType": "string"},
+                },
+                {"@type": AnnotationTypes.Alignment},
+                {"@type": DocumentTypes.TextDocument},
             ],
         }
-        return metadata
+        return AppMetadata(**metadata)
 
     def _annotate(self, mmif_obj: Mmif, **kwargs) -> Mmif:
         """
@@ -31,10 +42,10 @@ class OCR(ClamsApp):
         :return: annotated mmif as string
         """
         new_view = mmif_obj.new_view()
-        new_view.metadata['app'] = self.metadata["iri"]
-        new_view.new_contain(DocumentTypes.TextDocument.value)
-        new_view.metadata.set_additional_property("parameters", kwargs.copy())
-        box_type = kwargs.pop('boxType') if 'boxType' in kwargs else None
+        config = self.get_configuration(**kwargs)
+        self.sign_view(new_view, config)
+        new_view.new_contain(DocumentTypes.TextDocument)
+        box_type = kwargs.pop("boxType") if "boxType" in kwargs else None
         if box_type:
             mmif_obj = box_ocr(mmif_obj, new_view, box_type, **kwargs)
         else:
@@ -46,3 +57,4 @@ if __name__ == "__main__":
     ocr_tool = OCR()
     ocr_service = Restifier(ocr_tool)
     ocr_service.run()
+s

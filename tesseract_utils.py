@@ -77,7 +77,7 @@ def generate_text_and_boxes(image: np.array, view: View, frame_num=None) -> View
     for _id, box in enumerate(cleaned_results):
         if frame_num:
             _id = f"{frame_num}_{_id}"
-        bb_annotation = view.new_annotation(f"bb{_id}", AnnotationTypes.BoundingBox.value)
+        bb_annotation = view.new_annotation(AnnotationTypes.BoundingBox)
         bb_annotation.add_property(
             "coordinates",
             [
@@ -90,12 +90,12 @@ def generate_text_and_boxes(image: np.array, view: View, frame_num=None) -> View
         bb_annotation.add_property("boxType", "text")
         if frame_num:
             bb_annotation.add_property("frame", frame_num)
-        td_annotation = view.new_annotation(f"td{_id}", DocumentTypes.TextDocument.value)
+        td_annotation = view.new_annotation(DocumentTypes.TextDocument)
         td_annotation.properties.text_language = "en"
         td_annotation.properties.text_value = box.text
-        align_annotation = view.new_annotation(f"a{_id}", AnnotationTypes.Alignment.value)
-        align_annotation.add_property("source", f"bb{_id}")
-        align_annotation.add_property("target", f"td{_id}")
+        align_annotation = view.new_annotation(AnnotationTypes.Alignment)
+        align_annotation.add_property("source", bb_annotation.id)
+        align_annotation.add_property("target", td_annotation.id)
     return view
 
 
@@ -145,7 +145,7 @@ def build_target_timeframes(
 ) -> Dict[Tuple[str, str],Tuple[str, str]]:
     ##todo 2020-11-01 kelleylynch should this get timeframes from across multiple views?
     result_dict = {}
-    for view in mmif.get_all_views_contain(AnnotationTypes.TimeFrame.value):
+    for view in mmif.get_all_views_contain(AnnotationTypes.TimeFrame):
         for annotation in view.annotations:
             if annotation.properties["frameType"] == target_type:
                 if (
@@ -180,8 +180,7 @@ def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
         DocumentTypes.TextDocument,
         AnnotationTypes.Alignment,
     ]:
-        contain = view.new_contain(ann_type)
-        contain.producer = "app-tesseractocr-wrapper"  # todo de-hardcode this
+        view.new_contain(ann_type)
     FRAME_TYPE = kwargs.get("frameType", None)
     counter = 0
     if FRAME_TYPE:
@@ -215,7 +214,7 @@ def run_aligned_video(
     mmif: Mmif, new_view: View, bb_views: List[View], box_type: str, valid_frame_list=None
 ) -> Mmif:
     cap = cv2.VideoCapture(
-        mmif.get_document_location(DocumentTypes.VideoDocument.value)
+        mmif.get_document_location(DocumentTypes.VideoDocument)
     )
     for view in bb_views:
         annotation_dict = build_frame_box_dict(view, box_type)
@@ -234,7 +233,7 @@ def run_aligned_video(
 def run_aligned_image(
     mmif: Mmif, new_view: View, bb_views: List[View], box_type: str
 ) -> Mmif:
-    image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument.value))
+    image = cv2.imread(mmif.get_document_location(DocumentTypes.ImageDocument))
     for view in bb_views:
         add_ocr_and_align(
             image,
@@ -257,7 +256,7 @@ def box_ocr(mmif_obj, new_view, box_type, **kwargs):
         if bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType=box_type)
     ]
     frame_number_ranges=[(0, 30*60*60*3)]
-    if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument.value):
+    if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument):
         ##todo 2021-03-01 kelleylynch need to handle if there is boxType and frameType
         if FRAME_TYPE:
             views_with_timeframe = [
@@ -287,7 +286,7 @@ def full_ocr(mmif_obj, new_view, **kwargs):
     tess_wrapper.PSM = kwargs["psm"] if "psm" in kwargs else None
     tess_wrapper.OEM = kwargs["oem"] if "oem" in kwargs else None
     tess_wrapper.CHAR_WHITELIST = kwargs["char_whitelist"] if "char_whitelist" in kwargs else None
-    if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument.value):
+    if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument):
         mmif_obj = run_video_tesseract(mmif_obj, new_view, **kwargs)
     else:
         mmif_obj = run_image_tesseract(mmif_obj, new_view)
