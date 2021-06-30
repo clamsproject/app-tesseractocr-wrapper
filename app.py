@@ -21,9 +21,9 @@ class OCR(ClamsApp):
             "required":False} # todo are both of these really false?
             ],
             "output": [
-                AnnotationTypes.BoundingBox.value,
-                AnnotationTypes.Alignment.value,
-                DocumentTypes.TextDocument.value,
+                {"@type":AnnotationTypes.BoundingBox.value, "properties":{"frameType":"string"}},
+                {"@type":AnnotationTypes.Alignment.value},
+                {"@type":DocumentTypes.TextDocument.value},
             ],
         }
         return metadata
