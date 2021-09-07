@@ -149,7 +149,8 @@ def build_target_timeframes(
         for annotation in view.annotations:
             if annotation.properties["frameType"] == target_type:
                 if (
-                    annotation.properties["unit"] == "frame"
+                    # view.metadata["timeUnit"] == "frame"
+                    True
                 ):  ##todo 2020-11-01 kelleylynch make this work for other units
                     result_dict[(view.id, annotation.id)] = (
                         annotation.properties["start"],
@@ -174,24 +175,28 @@ def get_annotation_by_id(view: View, id: str) -> Annotation:
 
 
 def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
-    cap = cv2.VideoCapture(mmif.get_document_location(DocumentTypes.VideoDocument))
-    for ann_type in [
-        AnnotationTypes.BoundingBox,
-        DocumentTypes.TextDocument,
-        AnnotationTypes.Alignment,
-    ]:
-        view.new_contain(ann_type)
+    document_location = mmif.get_document_location(DocumentTypes.VideoDocument)
+    document = mmif.get_documents_by_type(DocumentTypes.VideoDocument)[0] ##todo 7/18/21 kelleylynch these two lines seem redundant, is there a better function to use
+    cap = cv2.VideoCapture(document_location)
+    view.new_contain(AnnotationTypes.BoundingBox, document=document.id)
+    view.new_contain(DocumentTypes.TextDocument)
+    view.new_contain(AnnotationTypes.Alignment)
     FRAME_TYPE = kwargs.get("frameType", None)
     counter = 0
     if FRAME_TYPE:
         target_timeframes = build_target_timeframes(mmif, FRAME_TYPE)
+        timeframe_unit = mmif.get_all_views_contain()
         for ids, framenums in target_timeframes.items():
             target_fnum = (int(framenums[0]) + int(framenums[1])) // 2
-            cap.set(cv2.CAP_PROP_POS_FRAMES, target_fnum)
+            if timeframe_unit == "frame":
+                cap.set(cv2.CAP_PROP_POS_FRAMES, target_fnum)
+            elif timeframe_unit == "msec":
+                cap.set(cv2.CAP_PROP_POS_MSEC, target_fnum)
+            else:
+                raise Exception("invaild timeframe unit")
             ret, frame = cap.read()
             # todo 2020-11-01 kelleylynch right now we're just annotating the middle frame from each frame range, maybe this should be set with a param
             generate_text_and_boxes(frame, view, target_fnum)
-            # todo 2020-11-01 kelleylynch add alignment annotation to align between generated boxes and slate annotation
     else:
         SAMPLE_RATIO = int(kwargs.get("sampleRatio", 30))
         while cap.isOpened():
@@ -219,14 +224,9 @@ def run_aligned_video(
     for view in bb_views:
         annotation_dict = build_frame_box_dict(view, box_type)
         for frame_num, annotation_list in annotation_dict.items():
-            print (f"tesseracting frame number {frame_num}")
-            # if valid_frame_list:
-            #     if frame_num not in valid_frame_list:
-            #         continue
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
             ret, frame = cap.read()
             add_ocr_and_align(frame, new_view, view.id, annotation_list, frame_num)
-    print (new_view)
     return mmif
 
 
@@ -249,7 +249,7 @@ def box_ocr(mmif_obj, new_view, box_type, **kwargs):
     tess_wrapper.PSM = kwargs["psm"] if "psm" in kwargs else None
     tess_wrapper.OEM = kwargs["oem"] if "oem" in kwargs else None
     tess_wrapper.CHAR_WHITELIST = kwargs["char_whitelist"] if "char_whitelist" in kwargs else None
-    FRAME_TYPE = kwargs["frame_type"] if "frame_type" in kwargs else None #slate, credits, etc
+    FRAME_TYPE = kwargs["frameType"] if "frameType" in kwargs else None #slate, credits, etc
     views_with_bbox = [
         bb_view
         for bb_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox)
@@ -286,6 +286,7 @@ def full_ocr(mmif_obj, new_view, **kwargs):
     tess_wrapper.PSM = kwargs["psm"] if "psm" in kwargs else None
     tess_wrapper.OEM = kwargs["oem"] if "oem" in kwargs else None
     tess_wrapper.CHAR_WHITELIST = kwargs["char_whitelist"] if "char_whitelist" in kwargs else None
+
     if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument):
         mmif_obj = run_video_tesseract(mmif_obj, new_view, **kwargs)
     else:
