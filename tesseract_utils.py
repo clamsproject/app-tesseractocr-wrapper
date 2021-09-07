@@ -142,7 +142,7 @@ def add_ocr_and_align(
 
 def build_target_timeframes(
     mmif: Mmif, target_type: Optional[str]
-) -> Dict[Tuple[str, str],Tuple[str, str]]:
+) -> Dict[Tuple[str, str],Tuple[str, str, str]]:
     ##todo 2020-11-01 kelleylynch should this get timeframes from across multiple views?
     result_dict = {}
     for view in mmif.get_all_views_contain(AnnotationTypes.TimeFrame):
@@ -155,6 +155,7 @@ def build_target_timeframes(
                     result_dict[(view.id, annotation.id)] = (
                         annotation.properties["start"],
                         annotation.properties["end"],
+                        view.metadata.parameters.get("timeUnit")
                     )
     return result_dict
 
@@ -185,12 +186,12 @@ def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
     counter = 0
     if FRAME_TYPE:
         target_timeframes = build_target_timeframes(mmif, FRAME_TYPE)
-        timeframe_unit = mmif.get_all_views_contain()
-        for ids, framenums in target_timeframes.items():
-            target_fnum = (int(framenums[0]) + int(framenums[1])) // 2
-            if timeframe_unit == "frame":
+        print(target_timeframes)
+        for ids, (start, end, unit) in target_timeframes.items():
+            target_fnum = (int(start) + int(end)) // 2
+            if unit == "frame":
                 cap.set(cv2.CAP_PROP_POS_FRAMES, target_fnum)
-            elif timeframe_unit == "msec":
+            elif unit == "msec":
                 cap.set(cv2.CAP_PROP_POS_MSEC, target_fnum)
             else:
                 raise Exception("invaild timeframe unit")

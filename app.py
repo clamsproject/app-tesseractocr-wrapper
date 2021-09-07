@@ -12,7 +12,7 @@ class OCR(ClamsApp):
             "description": "This tool applies Tesseract OCR to a video or"
             "image and generates text boxes and OCR results.",
             "app_version": APP_VERSION,
-            "license":"MIT",
+            "license": "MIT",
             # "app_license":"",
             # "analyzer_version":"",
             # "analyzer_license":"",
