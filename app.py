@@ -9,10 +9,13 @@ class OCR(ClamsApp):
     def _appmetadata(self):
         metadata = {
             "name": "Tesseract OCR",
-            "description": "This tool applies Tesseract OCR to an "
-            "image and generates text boxes and OCR result.",
+            "description": "This tool applies Tesseract OCR to a video or"
+            "image and generates text boxes and OCR results.",
             "app_version": APP_VERSION,
-            "license":"", # todo look up wrappee license
+            "license":"MIT",
+            # "app_license":"",
+            # "analyzer_version":"",
+            # "analyzer_license":"",
             "identifier": f"http://mmif.clams.ai/apps/tesseract/{APP_VERSION}",
             "input": [
                 {
@@ -57,4 +60,3 @@ if __name__ == "__main__":
     ocr_tool = OCR()
     ocr_service = Restifier(ocr_tool)
     ocr_service.run()
-s
