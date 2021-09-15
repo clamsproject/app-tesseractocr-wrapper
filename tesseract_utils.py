@@ -142,7 +142,7 @@ def add_ocr_and_align(
 
 def build_target_timeframes(
     mmif: Mmif, target_type: Optional[str]
-) -> Dict[Tuple[str, str],Tuple[str, str, str]]:
+) -> Dict[Tuple[str, str], Tuple[str, str, str]]:
     ##todo 2020-11-01 kelleylynch should this get timeframes from across multiple views?
     result_dict = {}
     for view in mmif.get_all_views_contain(AnnotationTypes.TimeFrame):
@@ -188,16 +188,17 @@ def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
         target_timeframes = build_target_timeframes(mmif, FRAME_TYPE)
         print(target_timeframes)
         for ids, (start, end, unit) in target_timeframes.items():
-            target_fnum = (int(start) + int(end)) // 2
+            offset = (int(start) + int(end)) // 2
             if unit == "frame":
-                cap.set(cv2.CAP_PROP_POS_FRAMES, target_fnum)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, offset)
             elif unit == "msec":
-                cap.set(cv2.CAP_PROP_POS_MSEC, target_fnum)
+                cap.set(cv2.CAP_PROP_POS_MSEC, offset)
+                offset = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             else:
                 raise Exception("invaild timeframe unit")
             ret, frame = cap.read()
             # todo 2020-11-01 kelleylynch right now we're just annotating the middle frame from each frame range, maybe this should be set with a param
-            generate_text_and_boxes(frame, view, target_fnum)
+            generate_text_and_boxes(frame, view, offset)
     else:
         SAMPLE_RATIO = int(kwargs.get("sampleRatio", 30))
         while cap.isOpened():
