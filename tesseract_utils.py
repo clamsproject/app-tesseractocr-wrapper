@@ -103,7 +103,7 @@ def add_ocr_and_align(
     image: np.array,
     new_view: View,
     align_id: str,
-    bb_annotations: [Annotation],
+    bb_annotations: List[Annotation],
     frame_num=None,
 ) -> View:
     """
@@ -129,14 +129,12 @@ def add_ocr_and_align(
         ]
         text_content = tess_wrapper.image_to_string(
             image_crop
-        )
-        tdoc_annotation = new_view.new_annotation(
-            f"td{_id}", DocumentTypes.TextDocument
-        )
-        tdoc_annotation.add_property("text", str({"@value": text_content.strip()}))
-        align_annotation = new_view.new_annotation(f"a{_id}", AnnotationTypes.Alignment)
-        align_annotation.add_property("source", f"{align_id}:{bb_annotation.id}")
-        align_annotation.add_property("target", tdoc_annotation.id)
+        ).strip()
+        if text_content:
+            td = new_view.new_textdocument(text_content)
+            align_annotation = new_view.new_annotation(AnnotationTypes.Alignment)
+            align_annotation.add_property("source", f"{align_id}:{bb_annotation.id}")
+            align_annotation.add_property("target", td.id)
     return new_view
 
 
@@ -186,7 +184,6 @@ def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
     counter = 0
     if FRAME_TYPE:
         target_timeframes = build_target_timeframes(mmif, FRAME_TYPE)
-        print(target_timeframes)
         for ids, (start, end, unit) in target_timeframes.items():
             offset = (int(start) + int(end)) // 2
             if unit == "frame":
@@ -257,8 +254,8 @@ def box_ocr(mmif_obj, new_view, box_type, **kwargs):
         for bb_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox)
         if bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType=box_type)
     ]
-    frame_number_ranges=[(0, 30*60*60*3)]
     if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument):
+        frame_number_ranges=[(0, 30*60*60*3)]
         ##todo 2021-03-01 kelleylynch need to handle if there is boxType and frameType
         if FRAME_TYPE:
             views_with_timeframe = [
