@@ -1,19 +1,21 @@
-# app-tesseract-wrapper
+## User instruction
 
-This CLAMS app wraps the tesseract OCR tool. 
+General user instruction for CLAMS apps is available at [CLAMS Apps documentation](https://apps.clams.ai/clamsapp/).
 
----
-`docker build .`
+Below is a list of additional information specific to this app.
 
-`docker run -p 5000:[host port] -v [host data path]:/data [docker image name]`
+### System requirments
 
-Tested with command:
+This tool relies on the tesseract ocr engine and the pytesseract python library.
 
-`curl -H 'Content-Type:application/json' -d "@[path to mmif json]" -X PUT http://localhost:5000/` 
+- [tesseract](https://github.com/tesseract-ocr/tesseract)
 
-Where the media location designated in the mmif json is in the volume mounted by the container.
-___
-# Parameters
+(The container image is built with `tesseract-ocr` (version 4) on Debian Buster, see https://packages.debian.org/buster/tesseract-ocr)
+
+- [pytesseract](https://github.com/madmaze/pytesseract)
+
+### Configurable runtime parameter
+
 This CLAMS app accepts the following query parameters
 
 - pretty
@@ -22,14 +24,6 @@ This CLAMS app accepts the following query parameters
 - sampleRatio: integer, default: 30
 - boxThreshold: integer, default: 90
 - Tesseract Specific Parameters
-  - psm: string, page segmentation mode
-  - oem: string, 
-  - char_whitelist: string *NOTE: only supported with oem=0.*
-
----
-
-This tool relies on the tesseract ocr engine and the pytesseract python library.
-
-- [tesseract](https://github.com/tesseract-ocr/tesseract)
-
-- [pytesseract](https://github.com/madmaze/pytesseract)
+   - psm: string, page segmentation mode
+   - oem: string,
+   - char_whitelist: string *NOTE: only supported with oem=0.*

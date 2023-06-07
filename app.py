@@ -1,39 +1,14 @@
+import argparse
+
 from clams import ClamsApp, Restifier, AppMetadata
 
 from tesseract_utils import *
 
-__version__ = 0.1
-
 
 class OCR(ClamsApp):
     def _appmetadata(self) -> AppMetadata:
-        metadata = AppMetadata(
-            name="Tesseract OCR Wrapper",
-            description="This tool applies Tesseract OCR to a video or"
-            "image and generates text boxes and OCR results.",
-            app_version=__version__,
-            app_license='MIT',
-            analyzer_license='apache',
-            url="https://github.com/clamsproject/app-tesseractocr-wrapper", 
-            identifier=f"http://apps.clams.ai/tesseract/{__version__}",
-        )
-        metadata.add_input(DocumentTypes.VideoDocument)
-        metadata.add_input(AnnotationTypes.BoundingBox, required=False, boxType='text')
-        
-        metadata.add_output(DocumentTypes.TextDocument)
-        metadata.add_output(AnnotationTypes.BoundingBox)
-        metadata.add_output(AnnotationTypes.Alignment)
-        
-        metadata.add_parameter(name='boxType', type='string', 
-                               description='When set, use exising "text"-typed ``BoundingBox`` annotations '
-                                           'and run tesseract only on those regions, instead of entire frames.', 
-                               default=' ')
-        # metadata.add_parameter(name='frame_type', type='string',
-        #                        description='When set only apply tesseract to frames annotated with a given frame type',
-        #                        default='')
-        return metadata
+        pass
 
-    
     def _annotate(self, mmif_obj: Mmif, **kwargs) -> Mmif:
         """
         :param mmif_obj: this mmif could contain images or video, with or without preannotated text boxes
@@ -50,8 +25,23 @@ class OCR(ClamsApp):
             mmif_obj = full_ocr(mmif_obj, new_view, **kwargs)
         return mmif_obj
 
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--port", action="store", default="5000", help="set port to listen"
+    )
+    parser.add_argument("--production", action="store_true", help="run gunicorn server")
+    # more arguments as needed
+    # parser.add_argument(more_arg...)
+
+    parsed_args = parser.parse_args()
+
+    # create the app instance
     ocr_tool = OCR()
-    ocr_service = Restifier(ocr_tool)
-    ocr_service.run()
+
+    ocr_service = Restifier(ocr_tool, port=int(parsed_args.port)
+                         )
+    if parsed_args.production:
+        ocr_service.serve_production()
+    else:
+        ocr_service.run()
