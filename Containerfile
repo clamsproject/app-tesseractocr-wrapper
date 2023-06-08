@@ -1,5 +1,13 @@
-FROM clamsproject/clams-python-opencv4
-# general
+FROM ghcr.io/clamsproject/clams-python-opencv4:1.0.2
+################################################################################
+# DO NOT EDIT THIS SECTION
+ARG CLAMS_APP_VERSION
+ENV CLAMS_APP_VERSION ${CLAMS_APP_VERSION}
+################################################################################
+
+################################################################################
+# clams-python base images are based on debian distro
+# install more system packages as needed using the apt manager
 RUN apt-get update && apt-get install -y build-essential cmake \
     wget git unzip
 
@@ -25,7 +33,7 @@ RUN apt-get install -y libleptonica-dev \
 RUN apt-get install -y \
     tesseract-ocr-eng
     # add more if needed
-
+    
 #RUN apt-get -y clean all && \
 #    rm -rf /var/lib/apt/lists/* && \
 #
@@ -45,12 +53,14 @@ RUN apt-get install -y \
 #        && \
 #    apt-get clean && \
 #    rm -rf /opencv /opencv_contrib /var/lib/apt/lists/*
+################################################################################
 
-COPY requirements.txt /app/requirements.txt
-RUN pip install -r /app/requirements.txt
-
-COPY ./ ./app
+################################################################################
+# main app installation
+COPY ./ /app
 WORKDIR /app
+RUN pip3 install -r requirements.txt
 
-ENTRYPOINT ["python3"]
-CMD ["app.py"]
+# default command to run the CLAMS app in a production server 
+CMD ["python3", "app.py", "--production"]
+################################################################################
