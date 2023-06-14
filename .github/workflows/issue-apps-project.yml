@@ -1,7 +1,4 @@
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
 name: "🗂 Add new issue to `apps` GHP"
 
 on:
@@ -20,4 +17,3 @@ jobs:
     secrets: inherit
     with:
       projectnum: 12
-
