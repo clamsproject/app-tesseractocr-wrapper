@@ -18,9 +18,8 @@ class OCR(ClamsApp):
         new_view = mmif_obj.new_view()
         self.sign_view(new_view, self.get_configuration(**kwargs))
         new_view.new_contain(DocumentTypes.TextDocument)
-        box_type = kwargs.pop("boxType").strip() if "boxType" in kwargs else None
-        if box_type:
-            mmif_obj = box_ocr(mmif_obj, new_view, box_type, **kwargs)
+        if 'use_existing_text_boxes' in kwargs and kwargs['use_existing_text_boxes']:
+            mmif_obj = box_ocr(mmif_obj, new_view, **kwargs)
         else:
             mmif_obj = full_ocr(mmif_obj, new_view, **kwargs)
         return mmif_obj

@@ -243,7 +243,7 @@ def run_aligned_image(
     return mmif
 
 
-def box_ocr(mmif_obj, new_view, box_type, **kwargs):
+def box_ocr(mmif_obj, new_view, **kwargs):
     tess_wrapper.BOX_THRESHOLD = kwargs["box_threshold"] if "box_threshold" in kwargs else 90
     tess_wrapper.PSM = kwargs["psm"] if "psm" in kwargs else None
     tess_wrapper.OEM = kwargs["oem"] if "oem" in kwargs else None
@@ -252,7 +252,7 @@ def box_ocr(mmif_obj, new_view, box_type, **kwargs):
     views_with_bbox = [
         bb_view
         for bb_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox)
-        if bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType=box_type)
+        if bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType='text')
     ]
     if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument):
         frame_number_ranges=[(0, 30*60*60*3)]

@@ -27,10 +27,11 @@ def appmetadata() -> AppMetadata:
     metadata.add_output(DocumentTypes.TextDocument)
     metadata.add_output(AnnotationTypes.BoundingBox)
     metadata.add_output(AnnotationTypes.Alignment)
-    metadata.add_parameter(name='boxType', type='string',
+    # TODO (krim @ 6/26/23): added params for tesseract config (`threshold`, `psm`, `oem`, `whitelist`, `blacklist`)
+    metadata.add_parameter(name='use_existing_text_boxes', type='boolean',
                            description='When set, use exising "text"-typed ``BoundingBox`` annotations '
                                        'and run tesseract only on those regions, instead of entire frames.',
-                           default=' ') # was this whitespace due to https://github.com/clamsproject/clams-python/issues/110 ?
+                           default=True)
     return metadata
 
 
