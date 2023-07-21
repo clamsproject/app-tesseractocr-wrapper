@@ -1,10 +1,13 @@
 from typing import Optional, List, Tuple, Dict
+import warnings 
+
 import cv2
 import pytesseract
 import collections
 import numpy as np
 from mmif.vocabulary import DocumentTypes, AnnotationTypes
 from mmif import Mmif, View, Annotation
+from mmif.utils import video_document_helper as vdh
 
 BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 
@@ -89,7 +92,7 @@ def generate_text_and_boxes(image: np.array, view: View, frame_num=None) -> View
         )
         bb_annotation.add_property("boxType", "text")
         if frame_num:
-            bb_annotation.add_property("frame", frame_num)
+            bb_annotation.add_property("timePoint", frame_num)
         td_annotation = view.new_annotation(DocumentTypes.TextDocument)
         td_annotation.properties.text_language = "en"
         td_annotation.properties.text_value = box.text
@@ -120,7 +123,7 @@ def add_ocr_and_align(
     for _id, bb_annotation in enumerate(bb_annotations):
         if frame_num:
             _id = f"{frame_num}_{_id}"
-        coordinates = bb_annotation.properties["coordinates"]
+        coordinates = bb_annotation.get_property('coordinates')
         x0, y0 = coordinates[0]
         x1, y1 = coordinates[3]
         image_crop = image[
@@ -141,20 +144,17 @@ def add_ocr_and_align(
 def build_target_timeframes(
     mmif: Mmif, target_type: Optional[str]
 ) -> Dict[Tuple[str, str], Tuple[str, str, str]]:
-    ##todo 2020-11-01 kelleylynch should this get timeframes from across multiple views?
+    #TODO: 2020-11-01 kelleylynch should this get timeframes from across multiple views?
     result_dict = {}
     for view in mmif.get_all_views_contain(AnnotationTypes.TimeFrame):
         for annotation in view.annotations:
             if annotation.properties["frameType"] == target_type:
-                if (
-                    # view.metadata["timeUnit"] == "frame"
-                    True
-                ):  ##todo 2020-11-01 kelleylynch make this work for other units
-                    result_dict[(view.id, annotation.id)] = (
-                        annotation.properties["start"],
-                        annotation.properties["end"],
-                        view.metadata.parameters.get("timeUnit")
-                    )
+                timeframe_as_frame = vdh.convert_timeframe(mmif, annotation, 'frame')
+                result_dict[(view.id, annotation.id)] = (
+                timeframe_as_frame[0],
+                timeframe_as_frame[1],
+                'frame')
+                #TODO: 2020-11-01 kelleylynch make this work for other units
     return result_dict
 
 
@@ -164,8 +164,8 @@ def build_frame_box_dict(view: View, box_type: str):
         AnnotationTypes.BoundingBox, boxType=box_type
     ):
         # if annotation.properties["unit"] != "frame":
-        #     raise NotImplementedError ##todo 2020-10-29 kelleylynch handle units other than frame
-        annotation_dict[annotation.properties["frame"]].append(annotation)
+        #     raise NotImplementedError TODO: 2020-10-29 kelleylynch handle units other than frame
+        annotation_dict[annotation.get_property("timePoint")].append(annotation)
     return annotation_dict
 
 
@@ -174,9 +174,8 @@ def get_annotation_by_id(view: View, id: str) -> Annotation:
 
 
 def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
-    document_location = mmif.get_document_location(DocumentTypes.VideoDocument)
-    document = mmif.get_documents_by_type(DocumentTypes.VideoDocument)[0] ##todo 7/18/21 kelleylynch these two lines seem redundant, is there a better function to use
-    cap = cv2.VideoCapture(document_location)
+    document = mmif.get_documents_by_type(DocumentTypes.VideoDocument)[0]
+    cap = vdh.capture(document)
     view.new_contain(AnnotationTypes.BoundingBox, document=document.id)
     view.new_contain(DocumentTypes.TextDocument)
     view.new_contain(AnnotationTypes.Alignment)
@@ -186,15 +185,17 @@ def run_video_tesseract(mmif: Mmif, view: View, **kwargs) -> Mmif:
         target_timeframes = build_target_timeframes(mmif, FRAME_TYPE)
         for ids, (start, end, unit) in target_timeframes.items():
             offset = (int(start) + int(end)) // 2
+            #TODO: DC 2023-07-21: find a way to leverage vdh helpers here? 
             if unit == "frame":
                 cap.set(cv2.CAP_PROP_POS_FRAMES, offset)
             elif unit == "msec":
                 cap.set(cv2.CAP_PROP_POS_MSEC, offset)
                 offset = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
             else:
-                raise Exception("invaild timeframe unit")
+                raise Exception("invalid timeframe unit")
             ret, frame = cap.read()
-            # todo 2020-11-01 kelleylynch right now we're just annotating the middle frame from each frame range, maybe this should be set with a param
+            #TODO: 2020-11-01 kelleylynch right now we're just annotating the middle frame from each frame range, 
+            # maybe this should be set with a param
             generate_text_and_boxes(frame, view, offset)
     else:
         SAMPLE_RATIO = int(kwargs.get("sampleRatio", 30))
@@ -215,11 +216,10 @@ def run_image_tesseract(mmif: Mmif, view: View) -> Mmif:
 
 
 def run_aligned_video(
-    mmif: Mmif, new_view: View, bb_views: List[View], box_type: str, valid_frame_list=None
+    mmif: Mmif, new_view: View, bb_views: List[View], box_type: str, valid_frame_list=None #TODO: DC 2023-07-21: valid_frame_list is unused
 ) -> Mmif:
-    cap = cv2.VideoCapture(
-        mmif.get_document_location(DocumentTypes.VideoDocument)
-    )
+    document = mmif.get_documents_by_type(DocumentTypes.VideoDocument)[0]
+    cap = vdh.capture(document)
     for view in bb_views:
         annotation_dict = build_frame_box_dict(view, box_type)
         for frame_num, annotation_list in annotation_dict.items():
@@ -249,14 +249,17 @@ def box_ocr(mmif_obj, new_view, **kwargs):
     tess_wrapper.OEM = kwargs["oem"] if "oem" in kwargs else None
     tess_wrapper.CHAR_WHITELIST = kwargs["char_whitelist"] if "char_whitelist" in kwargs else None
     FRAME_TYPE = kwargs["frameType"] if "frameType" in kwargs else None #slate, credits, etc
+    BOX_TYPE = "text" #TODO: DC 2023-07-21: add a way to actually grab the box type from the annotations 
+
     views_with_bbox = [
         bb_view
         for bb_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox)
         if bb_view.get_annotations(AnnotationTypes.BoundingBox, boxType='text')
     ]
+
     if mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument):
         frame_number_ranges=[(0, 30*60*60*3)]
-        ##todo 2021-03-01 kelleylynch need to handle if there is boxType and frameType
+        #TODO: 2021-03-01 kelleylynch need to handle if there is boxType and frameType
         if FRAME_TYPE:
             views_with_timeframe = [
                 tf_view
@@ -272,11 +275,11 @@ def box_ocr(mmif_obj, new_view, **kwargs):
         #                 if int(bb_view.properties["frame"]) in
         #                 itertools.chain([list(range(tf[0], tf[1]+1)) for tf in frame_number_ranges])
         #                 ]
-        target_views = views_with_bbox ##todo 4/29/21 kelleylynch incorporate filtering for frame type something like above comment
-        mmif_obj = run_aligned_video(mmif_obj, new_view, target_views, box_type, valid_frame_list=frame_number_ranges)
+        target_views = views_with_bbox #TODO: 4/29/21 kelleylynch incorporate filtering for frame type something like above comment
+        mmif_obj = run_aligned_video(mmif_obj, new_view, target_views, box_type=BOX_TYPE, valid_frame_list=frame_number_ranges)
     else:
         target_views=views_with_bbox
-        mmif_obj = run_aligned_image(mmif_obj, new_view, target_views, box_type)
+        mmif_obj = run_aligned_image(mmif_obj, new_view, target_views, box_type=BOX_TYPE)
     return mmif_obj
 
 

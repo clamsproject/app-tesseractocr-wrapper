@@ -32,6 +32,27 @@ def appmetadata() -> AppMetadata:
                            description='When set, use exising "text"-typed ``BoundingBox`` annotations '
                                        'and run tesseract only on those regions, instead of entire frames.',
                            default=True)
+    """
+    metadata.add_parameter(name='threshold',
+                           description='',
+                           default='')
+    metadata.add_parameter(name='psm',
+                           description='Tesseract Page Segmentation Modes',
+                           type='integer',
+                           choices=[x for x in range(14)],
+                           default=0)
+    metadata.add_parameter(name='oem',
+                           description='Tesseract OCR Engine Modes',
+                           type='integer',
+                           choices=[0,1,2,3],
+                           default=3)
+    metadata.add_parameter(name='char-whitelist',
+                           description='"oem" must be 0',
+                           default='')
+    metadata.add_parameter(name='blacklist',
+                           description='',
+                           default='')
+    """
     return metadata
 
 

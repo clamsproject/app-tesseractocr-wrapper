@@ -1,12 +1,11 @@
 import argparse
-
 from clams import ClamsApp, Restifier, AppMetadata
-
+from mmif import Mmif
 from tesseract_utils import *
-
 
 class OCR(ClamsApp):
     def _appmetadata(self) -> AppMetadata:
+        """See metadata.py"""
         pass
 
     def _annotate(self, mmif_obj: Mmif, **kwargs) -> Mmif:

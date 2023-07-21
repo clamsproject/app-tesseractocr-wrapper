@@ -1,6 +1,6 @@
 ## User instruction
 
-General user instruction for CLAMS apps is available at [CLAMS Apps documentation](https://apps.clams.ai/clamsapp/).
+General user instruction for CLAMS apps is available at [CLAMS Apps documentation](https://apps.clams.ai/clamsapp).
 
 Below is a list of additional information specific to this app.
 
@@ -19,11 +19,11 @@ This tool relies on the tesseract ocr engine and the pytesseract python library.
 This CLAMS app accepts the following query parameters
 
 - pretty
-- boxType: string, default: None, If this parameter is set, the sample ratio parameter is ignored. When this parameter is set, instead of applying Tesseract to the entire frame, Tesseract is applied to regions of the frame specified by BoundingBox annotations with the specified box type.
-- frameType: string, default: None, If this parameter is set, the sample ratio parameter is ignored. The middle frame is selected from all TimeFrame annotations that match the specified frameType
-- sampleRatio: integer, default: 30
-- boxThreshold: integer, default: 90
+- boxType :: string, default: None, If this parameter is set, the sample ratio parameter is ignored. When this parameter is set, instead of applying Tesseract to the entire frame, Tesseract is applied to regions of the frame specified by BoundingBox annotations with the specified box type.
+- frameType :: string, default: None, If this parameter is set, the sample ratio parameter is ignored. The middle frame is selected from all TimeFrame annotations that match the specified frameType
+- sampleRatio :: integer, default: 30
+- boxThreshold :: integer, default: 90
 - Tesseract Specific Parameters
-   - psm: string, page segmentation mode
-   - oem: string,
-   - char_whitelist: string *NOTE: only supported with oem=0.*
+   - psm :: string, page segmentation mode
+   - oem :: string, engine mode
+   - char_whitelist :: string *NOTE: only supported with oem=0.*

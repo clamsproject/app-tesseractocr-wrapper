@@ -1,4 +1,4 @@
-FROM ghcr.io/clamsproject/clams-python-opencv4:1.0.2
+FROM ghcr.io/clamsproject/clams-python-opencv4:1.0.7
 ################################################################################
 # DO NOT EDIT THIS SECTION
 ARG CLAMS_APP_VERSION
