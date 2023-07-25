@@ -1,6 +1,6 @@
-imutils==0.5.2
-numpy==1.19.2
-opencv-python==4.4.0.44
-pytesseract==0.3.6
+clams-python==1.0.9
 
-clams-python==0.5.1
+imutils>=0.5
+numpy>=1.22
+opencv-python>=4.4
+pytesseract==0.3.6
