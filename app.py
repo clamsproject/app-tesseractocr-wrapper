@@ -24,6 +24,7 @@ class OCR(ClamsApp):
         :return: annotated mmif as string
         """
         new_view = mmif_obj.new_view()
+        self.sign_view(new_view, kwargs)
         config = self.get_configuration(**kwargs)
 
         tess_wrapper = Tesseract()
