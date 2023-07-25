@@ -23,16 +23,11 @@ def appmetadata() -> AppMetadata:
         analyzer_license='apache',
     )
     metadata.add_input(DocumentTypes.VideoDocument)
-    metadata.add_input(AnnotationTypes.BoundingBox, required=False, boxType='text')
+    metadata.add_input(AnnotationTypes.BoundingBox, boxType='text')
 
     metadata.add_output(DocumentTypes.TextDocument)
-    metadata.add_output(AnnotationTypes.BoundingBox)
     metadata.add_output(AnnotationTypes.Alignment)
     # TODO (krim @ 6/26/23): added params for tesseract config (`threshold`, `psm`, `oem`, `whitelist`, `blacklist`)
-    metadata.add_parameter(name='use_existing_text_boxes', type='boolean',
-                           description='When set, use exising "text"-typed ``BoundingBox`` annotations '
-                                       'and run tesseract only on those regions, instead of entire frames.',
-                           default=True)
     """
     metadata.add_parameter(name='threshold',
                            description='',
