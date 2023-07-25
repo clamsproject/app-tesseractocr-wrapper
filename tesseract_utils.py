@@ -7,21 +7,16 @@ BB = collections.namedtuple("BoundingBox", "conf left top width height text")
 
 class Tesseract:
     def __init__(self):
-        self.SAMPLE_RATIO = 30
-        self.BOX_THRESHOLD = 90
+        self.BOX_THRESHOLD = 0.9
         self.PSM = None
-        self.OEM = None
-        self.CHAR_WHITELIST = None
         self.LANG = "eng"
 
     def get_config(self):
-        config = ""
+        config = f"--oem 3"
         if self.PSM:
             config += f"--psm {self.PSM} "
-        if self.OEM:
-            config += f"--oem {self.OEM} "
-        if self.CHAR_WHITELIST:
-            config += f"-c tessedit_char_whitelist={self.CHAR_WHITELIST} "
+        # char-whitelist is only supported with OEM==0, which we don't use
+    #     config += f"-c tessedit_char_whitelist={self.CHAR_WHITELIST} "
         return config
 
     def image_to_string(self, image):
@@ -49,7 +44,7 @@ class Tesseract:
         ):
             if (
                 type(box[0]) is int
-                and box[0] > self.BOX_THRESHOLD
+                and (box[0] / 100) > self.BOX_THRESHOLD
                 and len(box[5].strip()) > 0
             ):
                 cleaned_results.append(

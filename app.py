@@ -1,4 +1,5 @@
 import argparse
+import bisect
 import logging
 import warnings
 
@@ -27,9 +28,7 @@ class OCR(ClamsApp):
 
         tess_wrapper = Tesseract()
         tess_wrapper.BOX_THRESHOLD = config.get("threshold", 90)
-        tess_wrapper.PSM = config.get("psm", None)
-        tess_wrapper.OEM = config.get("oem", None)
-        tess_wrapper.CHAR_WHITELIST = config.get("char_whitelist", None)
+        tess_wrapper.PSM = config.get("psm")
 
         vds = mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument)
         if vds:
@@ -37,12 +36,43 @@ class OCR(ClamsApp):
         else:
             warnings.warn("No video document found in the input MMIF.")
             return mmif_obj
-        # TODO (krim @ 7/25/23): add a proper frame_type filtering
-        target_time_segments = [0, int(vds[0].get_property('frameCount'))]
+        
+        # building "valid" time segments from existing TF annotations
+        ## collect all TF annotations as time intervals
+        target_time_segments = []
+        found_time_segments = []
+        frame_types = set(config.get("frameType", []))
+        frame_types.discard('')
+        self.logger.debug(f"frame_types: {frame_types}")
+    
+        if frame_types:
+            for tf_view in mmif_obj.get_all_views_contain(AnnotationTypes.TimeFrame):
+                for tf_ann in tf_view.get_annotations(AnnotationTypes.TimeFrame):
+                    if tf_ann.get_property('frameType') in frame_types:
+                        self.logger.debug(f"found TF: {tf_ann.id} of type {tf_ann.get_property('frameType')}")
+                        bisect.insort(found_time_segments, vdh.convert_timeframe(mmif_obj, tf_ann, 'frame'))
+        else:
+            found_time_segments.append([0, int(vds[0].get_property('frameCount'))])
+        # merge any overlapping intervals 
+        if found_time_segments:
+            target_time_segments.append(found_time_segments[0])
+            for i in range(1, len(found_time_segments)):
+                if target_time_segments[-1][1] >= found_time_segments[i][0]:
+                    if target_time_segments[-1][1] < found_time_segments[i][1]:
+                        target_time_segments[-1][1] = found_time_segments[i][1]
+                else:
+                    target_time_segments.append(found_time_segments[i])
+        # these two lists are parallel, and will be used for filtering
+        if not target_time_segments:
+            warnings.warn(f"No valid TimeFrames of asked types ({frame_types}) found in the input MMIF.")
+            return mmif_obj
+        target_time_segment_starts, target_time_segment_ends = zip(*target_time_segments)
+        
         for textbox_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox):
             for box in textbox_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"):
                 frame_number = vdh.convert_timepoint(mmif_obj, box, 'frame')
-                if not (target_time_segments[0] <= frame_number < target_time_segments[1]):
+                # filter out any frames that are not in the "valid" time segments
+                if bisect.bisect(target_time_segment_starts, frame_number) != bisect.bisect(target_time_segment_ends, frame_number) + 1:
                     continue
                 videoObj.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
                 _, im = videoObj.read()

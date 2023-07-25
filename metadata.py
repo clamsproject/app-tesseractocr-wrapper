@@ -24,31 +24,28 @@ def appmetadata() -> AppMetadata:
     )
     metadata.add_input(DocumentTypes.VideoDocument)
     metadata.add_input(AnnotationTypes.BoundingBox, boxType='text')
+    metadata.add_input(AnnotationTypes.TimeFrame, required=False)
 
     metadata.add_output(DocumentTypes.TextDocument)
     metadata.add_output(AnnotationTypes.Alignment)
-    # TODO (krim @ 6/26/23): added params for tesseract config (`threshold`, `psm`, `oem`, `whitelist`, `blacklist`)
-    """
+
+    metadata.add_parameter(name='frameType',
+                           type='string',
+                           description='Use this to specify TimeFrame to use for filtering "text"-typed BoundingBox '
+                                       'annotations. Can be "slate", "chyron", "speech", etc.. If not set, the app '
+                                       'won\'t use TimeFrames for filtering.',
+                           default='',
+                           multivalued=True)
     metadata.add_parameter(name='threshold',
-                           description='',
-                           default='')
+                           type='number',
+                           description='Use this value between 0 and 1 to filter out low-confidence text boxes.',
+                           default=0.9)
     metadata.add_parameter(name='psm',
-                           description='Tesseract Page Segmentation Modes',
+                           description='Tesseract Page Segmentation Modes. See '
+                                       'https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html#page-segmentation-method',
                            type='integer',
                            choices=[x for x in range(14)],
                            default=0)
-    metadata.add_parameter(name='oem',
-                           description='Tesseract OCR Engine Modes',
-                           type='integer',
-                           choices=[0,1,2,3],
-                           default=3)
-    metadata.add_parameter(name='char-whitelist',
-                           description='"oem" must be 0',
-                           default='')
-    metadata.add_parameter(name='blacklist',
-                           description='',
-                           default='')
-    """
     return metadata
 
 
