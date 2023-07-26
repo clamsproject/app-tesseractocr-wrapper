@@ -17,7 +17,7 @@ def appmetadata() -> AppMetadata:
         name="Tesseract OCR Wrapper",
         description="This tool applies Tesseract OCR to a video or image and generates text boxes and OCR results.",
         app_license='MIT',
-        identifier="tesseract", 
+        identifier="tesseractocr-wrapper", 
         url="https://github.com/clamsproject/app-tesseractocr-wrapper",
         analyzer_version='tesseract4',
         analyzer_license='apache',
