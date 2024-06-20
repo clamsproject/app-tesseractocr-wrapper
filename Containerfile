@@ -1,5 +1,5 @@
 # Use the same base image version as the clams-python python library version
-FROM ghcr.io/clamsproject/clams-python-opencv4:1.0.9
+FROM ghcr.io/clamsproject/clams-python-opencv4:1.2.4
 # See https://github.com/orgs/clamsproject/packages?tab=packages&q=clams-python for more base images
 # IF you want to automatically publish this image to the clamsproject organization, 
 # 1. you should have generated this template without --no-github-actions flag
@@ -15,14 +15,26 @@ ENV CLAMS_APP_VERSION ${CLAMS_APP_VERSION}
 ################################################################################
 
 ################################################################################
+# This is duplicate from the base image Containerfile 
+# but makes sure the cache directories are consistent across all CLAMS apps
+
+# https://github.com/openai/whisper/blob/ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab/whisper/__init__.py#L130
+ENV XDG_CACHE_HOME='/cache'  
+# https://huggingface.co/docs/huggingface_hub/main/en/package_reference/environment_variables#hfhome
+ENV HF_HOME="/cache/huggingface"
+# https://pytorch.org/docs/stable/hub.html#where-are-my-downloaded-models-saved
+ENV TORCH_HOME="/cache/torch"
+################################################################################
+
+################################################################################
 # clams-python base images are based on debian distro
 # install more system packages as needed using the apt manager
 
 # tesseract 4
 RUN apt-get install -y libleptonica-dev \
-    libtesseract4 \
-    libtesseract-dev \
     tesseract-ocr
+    #libtesseract4 \
+    #libtesseract-dev \
 
 # Get language data.
 RUN apt-get install -y \

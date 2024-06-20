@@ -17,19 +17,18 @@ class OCR(ClamsApp):
         """See metadata.py"""
         pass
 
-    def _annotate(self, mmif_obj: Mmif, **kwargs) -> Mmif:
+    def _annotate(self, mmif_obj: Mmif, **params) -> Mmif:
         """
         :param mmif_obj: this mmif could contain images or video, with or without preannotated text boxes
-        :param **kwargs:
+        :param **params: the runtime configuration
         :return: annotated mmif as string
         """
         new_view = mmif_obj.new_view()
-        self.sign_view(new_view, kwargs)
-        config = self.get_configuration(**kwargs)
+        self.sign_view(new_view, params)
 
         tess_wrapper = Tesseract()
-        tess_wrapper.BOX_THRESHOLD = config.get("threshold", 90)
-        tess_wrapper.PSM = config.get("psm")
+        tess_wrapper.BOX_THRESHOLD = params["threshold"]
+        tess_wrapper.PSM = params["psm"]
 
         vds = mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument)
         if vds:
@@ -42,7 +41,7 @@ class OCR(ClamsApp):
         ## collect all TF annotations as time intervals
         target_time_segments = []
         found_time_segments = []
-        frame_types = set(config.get("frameType", []))
+        frame_types = set(params["frameType"])
         frame_types.discard('')
         self.logger.debug(f"frame_types: {frame_types}")
     
@@ -71,6 +70,7 @@ class OCR(ClamsApp):
         
         for textbox_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox):
             for box in textbox_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"):
+                # TODO - timepoint
                 frame_number = vdh.convert_timepoint(mmif_obj, box, 'frame')
                 # filter out any frames that are not in the "valid" time segments
                 if bisect.bisect(target_time_segment_starts, frame_number) != bisect.bisect(target_time_segment_ends, frame_number) + 1:
@@ -90,6 +90,14 @@ class OCR(ClamsApp):
                     alignment.add_property("source", f'{textbox_view.id}:{box.id}')
         return mmif_obj
 
+def get_app():
+    """
+    This function effectively creates an instance of the app class, without any arguments passed in, meaning, any 
+    external information such as initial app configuration should be set without using function arguments. The easiest
+    way to do this is to set global variables before calling this. 
+    """
+    return OCR()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -101,7 +109,7 @@ if __name__ == "__main__":
     parsed_args = parser.parse_args()
 
     # create the app instance
-    app = OCR()
+    app = get_app()
 
     http_app = Restifier(app, port=int(parsed_args.port))
     # for running the application in production mode
