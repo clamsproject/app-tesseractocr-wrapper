@@ -23,8 +23,9 @@ def appmetadata() -> AppMetadata:
         analyzer_license='apache',
     )
     metadata.add_input(DocumentTypes.VideoDocument)
-    metadata.add_input(AnnotationTypes.BoundingBox, boxType='text')
+    metadata.add_input(AnnotationTypes.BoundingBox, label='text')
     metadata.add_input(AnnotationTypes.TimeFrame, required=False)
+    metadata.add_input(AnnotationTypes.TimePoint)
 
     metadata.add_output(DocumentTypes.TextDocument)
     metadata.add_output(AnnotationTypes.Alignment)

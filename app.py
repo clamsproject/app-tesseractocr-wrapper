@@ -68,27 +68,38 @@ class OCR(ClamsApp):
             return mmif_obj
         target_time_segment_starts, target_time_segment_ends = zip(*target_time_segments)
         
-        for textbox_view in mmif_obj.get_all_views_contain(AnnotationTypes.BoundingBox):
-            for box in textbox_view.get_annotations(AnnotationTypes.BoundingBox, boxType="text"):
-                # TODO - timepoint
-                frame_number = vdh.convert_timepoint(mmif_obj, box, 'frame')
-                # filter out any frames that are not in the "valid" time segments
-                if bisect.bisect(target_time_segment_starts, frame_number) != bisect.bisect(target_time_segment_ends, frame_number) + 1:
-                    continue
-                videoObj.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-                _, im = videoObj.read()
-                if im is not None:
-                    im = Image.fromarray(im.astype("uint8"), 'RGB')
-                    (top_left_x, top_left_y), _, _, (bottom_right_x, bottom_right_y) = box.get_property("coordinates")
-                    cropped = im.crop((top_left_x, top_left_y, bottom_right_x, bottom_right_y))
-                    label = tess_wrapper.image_to_string(cropped).strip()
 
-                    self.logger.debug(f"OCR prediction: {label}")
-                    text_document = new_view.new_textdocument(' '.join(label))
-                    alignment = new_view.new_annotation(AnnotationTypes.Alignment)
-                    alignment.add_property("target", text_document.id)
-                    alignment.add_property("source", f'{textbox_view.id}:{box.id}')
+        textbox_view = mmif_obj.get_view_contains(AnnotationTypes.BoundingBox)
+        for box in textbox_view.get_annotations(AnnotationTypes.BoundingBox, label="text"):
+            
+            # get respective timepoint via alignment
+            for annotation in box.get_all_aligned():
+                if annotation.at_type == AnnotationTypes.TimePoint:
+                    frame_number = annotation.properties["timePoint"]
+        
+
+            # DEPRECATED: timepoint retrieval for non-TimePoint based bboxes
+            #frame_number = vdh.convert_timepoint(mmif_obj, box, 'frame')
+            
+
+            # filter out any frames that are not in the "valid" time segments
+            if bisect.bisect(target_time_segment_starts, frame_number) != bisect.bisect(target_time_segment_ends, frame_number) + 1:
+                continue
+            videoObj.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+            _, im = videoObj.read()
+            if im is not None:
+                im = Image.fromarray(im.astype("uint8"), 'RGB')
+                (top_left_x, top_left_y), _, _, (bottom_right_x, bottom_right_y) = box.get_property("coordinates")
+                cropped = im.crop((top_left_x, top_left_y, bottom_right_x, bottom_right_y))
+                label = tess_wrapper.image_to_string(cropped).strip()
+
+                self.logger.debug(f"OCR prediction: {label}")
+                text_document = new_view.new_textdocument(' '.join(label))
+                alignment = new_view.new_annotation(AnnotationTypes.Alignment)
+                alignment.add_property("target", text_document.id)
+                alignment.add_property("source", f'{textbox_view.id}:{box.id}')
         return mmif_obj
+
 
 def get_app():
     """

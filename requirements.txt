@@ -1,5 +1,5 @@
-clams-python==1.2.4
-
+clams-python==1.2.5
+mmif-python==1.0.17
 imutils>=0.5
 numpy>=1.22
 opencv-python>=4.4
