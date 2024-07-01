@@ -32,9 +32,10 @@ ENV TORCH_HOME="/cache/torch"
 
 # tesseract 4
 RUN apt-get install -y libleptonica-dev \
-    tesseract-ocr
+    tesseract-ocr \
     #libtesseract4 \
-    #libtesseract-dev \
+    libtesseract-dev 
+
 
 # Get language data.
 RUN apt-get install -y \
