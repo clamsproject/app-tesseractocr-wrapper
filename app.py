@@ -1,113 +1,76 @@
+"""
+wrapper for tesseract version 5.5 OCR
+"""
+
 import argparse
-import bisect
 import logging
-import warnings
 
-import cv2
-from PIL import Image
-from clams import ClamsApp, Restifier, AppMetadata
-from mmif import DocumentTypes, Mmif, AnnotationTypes
-from mmif.utils import video_document_helper as vdh
+from clams.app import ClamsApp
+from clams.restify import Restifier
+from mmif import Mmif, View, Document, AnnotationTypes, DocumentTypes
 
-from tesseract_utils import *
+# For an NLP tool we need to import the LAPPS vocabulary items
+from lapps.discriminators import Uri
+
+import tesseract_utils
+import json
 
 
-class OCR(ClamsApp):
-    def _appmetadata(self) -> AppMetadata:
-        """See metadata.py"""
+class TesseractocrWrapper(ClamsApp):
+
+    def __init__(self):
+        super().__init__()
+
+    def _appmetadata(self):
         pass
 
-    def _annotate(self, mmif_obj: Mmif, **params) -> Mmif:
-        """
-        :param mmif_obj: this mmif could contain images or video, with or without preannotated text boxes
-        :param **params: the runtime configuration
-        :return: annotated mmif as string
-        """
-        new_view = mmif_obj.new_view()
-        self.sign_view(new_view, params)
+    def _annotate(self, mmif: Mmif, **parameters) -> Mmif:
+        video_doc: Document = mmif.get_documents_by_type(DocumentTypes.VideoDocument)[0]
+        input_view: View = mmif.get_views_for_document(video_doc.properties.id)[-1]
 
-        tess_wrapper = Tesseract()
-        tess_wrapper.BOX_THRESHOLD = params["threshold"]
-        tess_wrapper.PSM = params["psm"]
+        new_view: View = mmif.new_view()
+        self.sign_view(new_view, parameters)
+        new_view.new_contain(DocumentTypes.TextDocument)
+        new_view.new_contain(AnnotationTypes.BoundingBox)
+        new_view.new_contain(AnnotationTypes.Alignment)
+        new_view.new_contain(Uri.PARAGRAPH)
+        new_view.new_contain(Uri.SENTENCE)
+        new_view.new_contain(Uri.TOKEN)
 
-        vds = mmif_obj.get_documents_by_type(DocumentTypes.VideoDocument)
-        if vds:
-            videoObj = vdh.capture(vds[0])
-        else:
-            warnings.warn("No video document found in the input MMIF.")
-            return mmif_obj
-        
-        # building "valid" time segments from existing TF annotations
-        ## collect all TF annotations as time intervals
-        target_time_segments = []
-        found_time_segments = []
-        frame_types = set(params["frameType"])
-        frame_types.discard('')
-        self.logger.debug(f"frame_types: {frame_types}")
-    
-        if frame_types:
-            for tf_view in mmif_obj.get_all_views_contain(AnnotationTypes.TimeFrame):
-                for tf_ann in tf_view.get_annotations(AnnotationTypes.TimeFrame):
-                    if tf_ann.get_property('frameType') in frame_types:
-                        self.logger.debug(f"found TF: {tf_ann.id} of type {tf_ann.get_property('frameType')}")
-                        bisect.insort(found_time_segments, vdh.convert_timeframe(mmif_obj, tf_ann, 'frame'))
-        else:
-            found_time_segments.append([0, int(vds[0].get_property('frameCount'))])
-        # merge any overlapping intervals 
-        if found_time_segments:
-            target_time_segments.append(found_time_segments[0])
-            for i in range(1, len(found_time_segments)):
-                if target_time_segments[-1][1] >= found_time_segments[i][0]:
-                    if target_time_segments[-1][1] < found_time_segments[i][1]:
-                        target_time_segments[-1][1] = found_time_segments[i][1]
-                else:
-                    target_time_segments.append(found_time_segments[i])
-        # these two lists are parallel, and will be used for filtering
-        if not target_time_segments:
-            warnings.warn(f"No valid TimeFrames of asked types ({frame_types}) found in the input MMIF.")
-            return mmif_obj
-        target_time_segment_starts, target_time_segment_ends = zip(*target_time_segments)
-        
-
-        textbox_view = mmif_obj.get_view_contains(AnnotationTypes.BoundingBox)
-        for box in textbox_view.get_annotations(AnnotationTypes.BoundingBox, label="text"):
-            
-            # get respective timepoint via alignment
-            for annotation in box.get_all_aligned():
-                if annotation.at_type == AnnotationTypes.TimePoint:
-                    frame_number = annotation.properties["timePoint"]
-        
-
-            # DEPRECATED: timepoint retrieval for non-TimePoint based bboxes
-            #frame_number = vdh.convert_timepoint(mmif_obj, box, 'frame')
-            
-
-            # filter out any frames that are not in the "valid" time segments
-            if bisect.bisect(target_time_segment_starts, frame_number) != bisect.bisect(target_time_segment_ends, frame_number) + 1:
+        futures = []
+        for timeframe in input_view.get_annotations(AnnotationTypes.TimeFrame):
+            if 'label' in timeframe:
+                self.logger.debug(f'Found a time frame "{timeframe.id}" of label: "{timeframe.get("label")}"')
+            else:
+                self.logger.debug(f'Found a time frame "{timeframe.id}" without label')
+            if parameters.get("tfLabel") and \
+                    'label' in timeframe and timeframe.get("label") not in parameters.get("tfLabel"):
                 continue
-            videoObj.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-            _, im = videoObj.read()
-            if im is not None:
-                im = Image.fromarray(im.astype("uint8"), 'RGB')
-                (top_left_x, top_left_y), _, _, (bottom_right_x, bottom_right_y) = box.get_property("coordinates")
-                cropped = im.crop((top_left_x, top_left_y, bottom_right_x, bottom_right_y))
-                label = tess_wrapper.image_to_string(cropped).strip()
+            else:
+                self.logger.debug(f'Processing time frame "{timeframe.id}"')
+            for rep_id in timeframe.get("representatives"):
+                if Mmif.id_delimiter not in rep_id:
+                    rep_id = f'{input_view.id}{Mmif.id_delimiter}{rep_id}'
+                representative = mmif[rep_id]
+                futures.append(tesseract_utils.process_time_annotation(mmif, representative, new_view, video_doc))
+            if len(futures) == 0:
+                # meaning "representatives" was not present, so alternatively, just process the middle frame
+                futures.append(tesseract_utils.process_time_annotation(mmif, timeframe, new_view, video_doc))
+                pass
 
-                self.logger.debug(f"OCR prediction: {label}")
-                text_document = new_view.new_textdocument(' '.join(label))
-                alignment = new_view.new_annotation(AnnotationTypes.Alignment)
-                alignment.add_property("target", text_document.id)
-                alignment.add_property("source", f'{textbox_view.id}:{box.id}')
-        return mmif_obj
+        for future in futures:
+            timestamp, text_content = future
+            self.logger.debug(f'Processed timepoint: {timestamp} ms, recognized text: "{json.dumps(text_content)}"')
 
+        return mmif
 
 def get_app():
     """
-    This function effectively creates an instance of the app class, without any arguments passed in, meaning, any 
+    This function effectively creates an instance of the app class, without any arguments passed in, meaning, any
     external information such as initial app configuration should be set without using function arguments. The easiest
-    way to do this is to set global variables before calling this. 
+    way to do this is to set global variables before calling this.
     """
-    return OCR()
+    return TesseractocrWrapper()
 
 
 if __name__ == "__main__":
@@ -115,7 +78,6 @@ if __name__ == "__main__":
     parser.add_argument("--port", action="store", default="5000", help="set port to listen")
     parser.add_argument("--production", action="store_true", help="run gunicorn server")
     # add more arguments as needed
-    # parser.add_argument(more_arg...)
 
     parsed_args = parser.parse_args()
 
