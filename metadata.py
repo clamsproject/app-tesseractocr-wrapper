@@ -23,8 +23,8 @@ def appmetadata() -> AppMetadata:
     
     # basic information
     metadata = AppMetadata(
-        name="Tesseractocr Wrapper",
-        description="This tool applies Tesseract OCR to a video or image and generates text boxes and OCR results.",
+        name="TesseractOCR Wrapper",
+        description="This tool applies Tesseract OCR to a video or image and generates text boxes and OCR results. Currenly only support English language.",
         app_license="Apache 2.0",  # short name for a software license
         identifier="tesseract",
         url="https://github.com/clamsproject/app-tesseractocr-wrapper",
