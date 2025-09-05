@@ -140,8 +140,7 @@ def process_time_annotation(mmif: Mmif, representative, new_view: View, video_do
                         word_ann = new_view.new_annotation(Uri.TOKEN, document=td_id,
                                                            start=start_index,
                                                            end=end_index,
-                                                           text=word,
-                                                           word=word)
+                                                           text=word)
                         target_tokens.append(word_ann.id)
                         create_bbox(new_view, token_coords.pop(0), representative, word_ann)
                 line_ann.add_property("targets", target_tokens)
